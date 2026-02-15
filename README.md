@@ -1,16 +1,56 @@
-\# 🇩🇪 LinguaCopilot
+<div align="center">
 
 
 
-A personal language learning tool that extracts vocabulary from YouTube subtitles and creates AI-powered flashcards using local LLM.
+\# LinguaCopilot
 
 
 
-!\[Python](https://img.shields.io/badge/Python-3.11-blue)
+AI-Powered German Language Learning from YouTube
 
-!\[SQLite](https://img.shields.io/badge/Database-SQLite-green)
 
-!\[Streamlit](https://img.shields.io/badge/UI-Streamlit-red)
+
+\[!\[Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square\&logo=python\&logoColor=white)](https://www.python.org/)
+
+\[!\[SQLite](https://img.shields.io/badge/SQLite-07405E?style=flat-square\&logo=sqlite\&logoColor=white)](https://www.sqlite.org/)
+
+\[!\[Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square\&logo=streamlit\&logoColor=white)](https://streamlit.io/)
+
+
+
+\[Features](#features) • \[Installation](#installation) • \[Usage](#usage) • \[Architecture](#architecture)
+
+
+
+</div>
+
+
+
+---
+
+
+
+\## Screenshots
+
+
+
+<div align="center">
+
+
+
+!\[Dashboard](docs/images/Dashboard.png)
+
+
+
+!\[Statistics](docs/images/stats.png)
+
+
+
+</div>
+
+
+
+---
 
 
 
@@ -18,19 +58,21 @@ A personal language learning tool that extracts vocabulary from YouTube subtitle
 
 
 
-\- YouTube Integration: Automatically fetch videos from educational German channels (DW Deutsch)
+\- YouTube Integration: Fetch educational videos from German channels
 
-\- Subtitle Processing: Download and clean German subtitles using yt-dlp
+\- Subtitle Processing: Download and clean subtitles using yt-dlp
 
-\- NLP-Powered Extraction: Extract vocabulary with spaCy and classify by CEFR levels (A1-C2)
+\- NLP Extraction: Extract vocabulary with spaCy and classify by CEFR levels
 
-\- AI Flashcard Generation: Create contextual example sentences using Ollama (llama3.2:3b)
+\- AI Flashcard Generation: Create contextual examples using Ollama (local LLM)
 
-\- Interactive Dashboard: Learn with dual-mode flashcards (DE→FR and FR→DE) using Streamlit
+\- Dual-Mode Learning: Practice German→French and French→German
 
-\- Progress Tracking: Persistent learning statistics stored in SQLite
+\- Progress Tracking: Persistent statistics stored in SQLite
 
-\- SQLite Database: All data stored locally for privacy and offline use
+
+
+---
 
 
 
@@ -64,25 +106,37 @@ YouTube API → Videos → Subtitles → Cleaning → Vocabulary Extraction
 
 
 
+---
+
+
+
 \## Tech Stack
 
 
 
-\- Data Collection: YouTube Data API v3, yt-dlp
+| Category | Technologies |
 
-\- NLP: spaCy (de\_core\_news\_sm), wordfreq
+|----------|-------------|
 
-\- AI: Ollama (llama3.2:3b) for local LLM inference
+| Data Collection | YouTube Data API v3, yt-dlp |
 
-\- Database: SQLite
+| NLP | spaCy, wordfreq |
 
-\- Frontend: Streamlit
+| AI | Ollama (llama3.2:3b) |
 
-\- Testing: pytest
+| Database | SQLite |
 
-\- CI/CD: GitHub Actions
+| Frontend | Streamlit |
 
-\- Containerization: Docker
+| Testing | pytest |
+
+| CI/CD | GitHub Actions |
+
+| Deployment | Docker |
+
+
+
+---
 
 
 
@@ -104,81 +158,47 @@ YouTube API → Videos → Subtitles → Cleaning → Vocabulary Extraction
 
 \### Setup
 
-
-
-1\. Clone the repository
-
 ```bash
+
+\# Clone repository
 
 git clone https://github.com/yourusername/linguacopilot.git
 
 cd linguacopilot
 
-```
 
 
-
-2\. Create virtual environment
-
-```bash
+\# Create virtual environment
 
 python -m venv venv
 
-source venv/bin/activate  # On Windows: venv\\Scripts\\activate
-
-```
+source venv/bin/activate  # Windows: venv\\Scripts\\activate
 
 
 
-3\. Install dependencies
-
-```bash
+\# Install dependencies
 
 pip install -r requirements.txt
 
 python -m spacy download de\_core\_news\_sm
 
-```
 
 
-
-4\. Install and setup Ollama
-
-```bash
+\# Setup Ollama
 
 ollama pull llama3.2:3b
 
-```
 
 
-
-5\. Configure environment variables
-
-```bash
+\# Configure environment
 
 cp .env.example .env
 
-\# Edit .env and add your YouTube API key
-
-```
+\# Edit .env with your YouTube API key
 
 
 
-Required .env variables:
-
-```
-
-YOUTUBE\_API\_KEY=your\_api\_key\_here
-
-CHANNEL\_ID=UCxUWIEL-USsiPak0Qy6\_vVg
-
-```
-
-
-
-6\. Initialize database
-
-```bash
+\# Initialize database
 
 python src/database/schema.py
 
@@ -186,45 +206,49 @@ python src/database/schema.py
 
 
 
+---
+
+
+
 \## Usage
 
 
 
-\### Run the complete pipeline
+\### Run Pipeline
 
 ```bash
 
-\# 1. Fetch videos from YouTube
+\# Fetch videos
 
 python src/youtube/channel\_videos.py
 
 
 
-\# 2. Download subtitles
+\# Download subtitles
 
 python src/youtube/subtitles.py
 
 
 
-\# 3. Clean subtitles
+\# Clean text
 
 python src/processing/cleaner.py
 
 
 
-\# 4. Extract vocabulary with CEFR levels
+\# Extract vocabulary
 
 python src/processing/extractor.py
 
 
 
-\# 5. Generate flashcards (requires Ollama running)
+\# Generate flashcards
 
 python src/llm/flashcards.py
 
 
 
-\# 6. Launch dashboard
+\# Launch dashboard
 
 streamlit run src/dashboard/app.py
 
@@ -232,7 +256,7 @@ streamlit run src/dashboard/app.py
 
 
 
-\### View database contents
+\### View Database
 
 ```bash
 
@@ -242,47 +266,61 @@ python view\_db.py
 
 
 
+---
+
+
+
 \## Dashboard Features
 
 
 
-\- Level Selection: Choose your CEFR level (A1, A2, B1, B2, C1, C2)
+\- Level Selection: Choose CEFR level (A1-C2)
 
-\- Dual Learning Modes: German to French and French to German
+\- Dual Modes: German→French and French→German
 
-\- Persistent Progress: All learning stats saved to database
+\- Progress Tracking: Persistent learning statistics
 
-\- Real-time Statistics: Track words practiced, accuracy, and improvement
+\- Real-time Stats: Accuracy and word count
 
-\- Responsive Design: Clean, user-friendly interface
-
-
-
-\## Screenshots
+\- Clean Interface: Responsive design
 
 
 
-!\[Dashboard](docs/images/dashboard.png)
+---
 
 
 
-!\[Statistics](docs/images/stats.png)
-
-
-
-\## Database Schema
-
-```sql
-
-videos (id, title, description, published\_at, created\_at)
-
-vocabulary (id, word, level, count, created\_at)
-
-flashcards (id, word, level, sentence\_de, sentence\_fr, created\_at)
-
-user\_progress (id, word, correct\_count, incorrect\_count, last\_seen)
+\## Project Structure
 
 ```
+
+linguacopilot/
+
+├── .github/workflows/  # CI/CD pipelines
+
+├── src/
+
+│   ├── youtube/        # Video \& subtitle fetching
+
+│   ├── processing/     # NLP \& extraction
+
+│   ├── llm/            # Flashcard generation
+
+│   ├── dashboard/      # Streamlit app
+
+│   └── database/       # SQLite schema
+
+├── tests/              # Unit tests
+
+├── Dockerfile
+
+└── README.md
+
+```
+
+
+
+---
 
 
 
@@ -296,17 +334,15 @@ pytest tests/ -v
 
 
 
+---
+
+
+
 \## Docker
 
 ```bash
 
-\# Build image
-
 docker build -t linguacopilot .
-
-
-
-\# Run container
 
 docker run -p 8501:8501 linguacopilot
 
@@ -314,37 +350,7 @@ docker run -p 8501:8501 linguacopilot
 
 
 
-\## Project Structure
-
-```
-
-linguacopilot/
-
-├── .github/workflows/     # CI/CD pipelines
-
-├── src/
-
-│   ├── youtube/          # Video \& subtitle fetching
-
-│   ├── processing/       # Cleaning \& extraction
-
-│   ├── llm/              # Flashcard generation
-
-│   ├── dashboard/        # Streamlit app
-
-│   └── database/         # Schema \& utilities
-
-├── tests/                # Unit tests
-
-├── data/                 # Database \& raw files (gitignored)
-
-├── Dockerfile
-
-├── requirements.txt
-
-└── README.md
-
-```
+---
 
 
 
@@ -352,19 +358,19 @@ linguacopilot/
 
 
 
-\- Support for English translations
+\- English translation support
 
-\- Migrate to PostgreSQL for multi-user support
+\- PostgreSQL migration for multi-user
 
-\- Add spaced repetition algorithm (SM-2)
+\- Spaced repetition algorithm
 
-\- Support multiple languages
+\- Cloud deployment
 
-\- Deploy to cloud (AWS Lambda + RDS)
+\- Anki export
 
-\- User authentication
 
-\- Export flashcards to Anki
+
+---
 
 
 
@@ -376,13 +382,15 @@ MIT License
 
 
 
+---
+
+
+
 \## Contact
 
 
 
-GitHub: \[@VirginieBaltus](https://github.com/VirginieBaltus)
+GitHub: @VirginieBaltus
 
-
-
-Project Link: https://github.com/VirgnieBaltus/linguacopilot
+Project: https://github.com/VirginieBaltus/linguacopilot
 
