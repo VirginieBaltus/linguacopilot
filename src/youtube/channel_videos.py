@@ -16,7 +16,7 @@ from pathlib import Path
 env_path = Path(__file__).parent.parent.parent / '.env'
 load_dotenv(env_path)
 
- YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY')
+YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY')
 if not YOUTUBE_API_KEY:
     raise ValueError("YOUTUBE_API_KEY not found in .env file")
 CHANNEL_ID = os.getenv('CHANNEL_ID', 'UCxUWIEL-USsiPak0Qy6_vVg')
