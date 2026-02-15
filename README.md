@@ -130,7 +130,7 @@ python view_db.py
 - Real-time Stats: Accuracy and word count
 - Clean Interface: Responsive design
   
-<img width="929" height="494" alt="image" src="https://github.com/user-attachments/assets/9b011539-89d2-4a2b-8af3-ed280b6df463" />
+<img width="1854" height="986" alt="image" src="https://github.com/user-attachments/assets/157408e8-7428-4d2e-895c-3b6aadde893c" />
 
 <img width="429" height="671" alt="Capture d&#39;écran 2026-02-15 210955" src="https://github.com/user-attachments/assets/1d6f2a8c-20b0-4935-afdf-278f15fe3568" />
 
