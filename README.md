@@ -130,6 +130,8 @@ python view_db.py
 - Real-time Stats: Accuracy and word count
 - Clean Interface: Responsive design
 
+<img width="429" height="671" alt="Capture d&#39;écran 2026-02-15 210955" src="https://github.com/user-attachments/assets/1d6f2a8c-20b0-4935-afdf-278f15fe3568" />
+
 ---
 
 ## Project Structure
