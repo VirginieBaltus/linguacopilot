@@ -129,6 +129,8 @@ python view_db.py
 - Progress Tracking: Persistent learning statistics
 - Real-time Stats: Accuracy and word count
 - Clean Interface: Responsive design
+  
+<img width="923" height="497" alt="dashboard" src="https://github.com/user-attachments/assets/a532ebb3-aaae-40fe-a264-230c66557195" />
 
 <img width="429" height="671" alt="Capture d&#39;écran 2026-02-15 210955" src="https://github.com/user-attachments/assets/1d6f2a8c-20b0-4935-afdf-278f15fe3568" />
 
