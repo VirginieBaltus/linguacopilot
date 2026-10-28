@@ -1,0 +1,4 @@
+.ytp-caption-segment {
+  cursor: pointer !important;
+  user-select: text !important;
+}
