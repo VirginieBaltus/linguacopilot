@@ -84,3 +84,15 @@ def test_console_invocation_does_not_need_key(ingest, monkeypatch):
     monkeypatch.setattr(ingest, "translate", lambda word, sentence: ("loyer", "traduction"))
     response = ingest.lambda_handler(VALID_CLICK, None)
     assert response["statusCode"] == 200
+
+def test_translate_route_does_not_save(ingest, monkeypatch):
+    s3 = mock_s3(ingest, monkeypatch)
+    monkeypatch.setattr(ingest, "translate", lambda word, sentence: ("loyer", "Comment payer le loyer ?"))
+    event = api_event({"word": "Miete", "sentence": "Wie zahle ich die Miete?"})
+    event["routeKey"] = "POST /translate"
+
+    response = ingest.lambda_handler(event, None)
+
+    assert response["statusCode"] == 200
+    assert json.loads(response["body"])["translation"] == "loyer"
+    s3.put_object.assert_not_called()

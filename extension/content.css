@@ -8,9 +8,36 @@
   position: absolute;
   z-index: 9998;
   border-radius: 3px;
-  border-bottom: 2px solid #ffd54f;
-  background: rgba(255, 213, 79, 0.3);
+  border-bottom: 2px solid #ff0033;
+  background: rgba(255, 0, 51, 0.2);
   pointer-events: none;
+}
+
+.lc-tooltip {
+  display: none;
+  position: absolute;
+  z-index: 10000;
+  transform: translate(-50%, -100%);
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #ff0033;
+  color: #ffffff;
+  font-family: Roboto, Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.lc-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #ff0033;
 }
 
 .lc-toast {
@@ -20,12 +47,12 @@
   transform: translateX(-50%);
   z-index: 9999;
   max-width: 80%;
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-radius: 8px;
-  background: rgba(20, 20, 20, 0.9);
+  background: rgba(20, 20, 20, 0.85);
   color: #ffffff;
   font-family: Roboto, Arial, sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.4;
   pointer-events: none;
 }
@@ -40,6 +67,6 @@
 
 .lc-toast__detail {
   margin-top: 4px;
-  font-size: 14px;
+  font-size: 13px;
   opacity: 0.85;
 }

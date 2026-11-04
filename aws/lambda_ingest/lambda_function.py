@@ -56,17 +56,31 @@ def translate(word, sentence):
         return None, None
 
 
+def json_response(status_code, body):
+    return {"statusCode": status_code, "body": json.dumps(body, ensure_ascii=False)}
+
+
 def lambda_handler(event, context):
     if not is_authorized(event):
-        return {"statusCode": 401, "body": json.dumps({"error": "Unauthorized"})}
+        return json_response(401, {"error": "Unauthorized"})
 
     # From API Gateway the payload is in "body", from a console test it is the event itself
     body = event.get("body")
     payload = json.loads(body) if body else event
 
+    # Hover translation: translate only, nothing is saved
+    if event.get("routeKey") == "POST /translate":
+        if not payload.get("word") or not payload.get("sentence"):
+            return json_response(400, {"error": "Missing word or sentence"})
+        word_translation, sentence_translation = translate(payload["word"], payload["sentence"])
+        if word_translation is None:
+            return json_response(502, {"error": "Translation unavailable"})
+        return json_response(200, {"translation": word_translation, "sentence_translation": sentence_translation})
+
+    # Click: translate and save the event for the flashcards
     missing = [field for field in REQUIRED_FIELDS if not payload.get(field)]
     if missing:
-        return {"statusCode": 400, "body": json.dumps({"error": f"Missing fields: {missing}"})}
+        return json_response(400, {"error": f"Missing fields: {missing}"})
 
     word_translation, sentence_translation = translate(payload["word"], payload["sentence"])
 
@@ -90,14 +104,7 @@ def lambda_handler(event, context):
         ContentType="application/json",
     )
 
-    return {
-        "statusCode": 200,
-        "body": json.dumps(
-            {
-                "event_id": event_id,
-                "translation": word_translation,
-                "sentence_translation": sentence_translation,
-            },
-            ensure_ascii=False,
-        ),
-    }
+    return json_response(
+        200,
+        {"event_id": event_id, "translation": word_translation, "sentence_translation": sentence_translation},
+    )

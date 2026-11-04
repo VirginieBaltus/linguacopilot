@@ -1,5 +1,10 @@
 console.log("[LinguaCopilot] content script loaded");
 
+const HOVER_DELAY_MS = 400;
+const translationCache = new Map();
+let hoveredKey = null;
+let hoverTimer = null;
+
 // Returns the word under the given point and its text range, or null
 function getWordAtPoint(x, y) {
   const caret = document.caretRangeFromPoint(x, y);
@@ -36,7 +41,19 @@ function getPlayer() {
   return document.querySelector("#movie_player") || document.body;
 }
 
-// Displays a short message on top of the video player
+// Returns an element drawn over the video player, creating it if needed
+function getOverlay(className) {
+  let element = document.querySelector(`.${className}`);
+  const player = getPlayer();
+  if (!element) {
+    element = document.createElement("div");
+    element.className = className;
+  }
+  if (element.parentElement !== player) player.appendChild(element);
+  return element;
+}
+
+// Displays a short confirmation on top of the video player
 function showToast(title, detail, isError = false) {
   const previous = document.querySelector(".lc-toast");
   if (previous) previous.remove();
@@ -57,50 +74,76 @@ function showToast(title, detail, isError = false) {
   }
 
   getPlayer().appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
+  setTimeout(() => toast.remove(), 2500);
 }
 
-// Highlights the word under the mouse with a box drawn over the subtitle
-function getHighlightBox() {
-  let box = document.querySelector(".lc-word-highlight");
-  const player = getPlayer();
-  if (!box) {
-    box = document.createElement("div");
-    box.className = "lc-word-highlight";
+function hideHover() {
+  for (const className of ["lc-word-highlight", "lc-tooltip"]) {
+    const element = document.querySelector(`.${className}`);
+    if (element) element.style.display = "none";
   }
-  if (box.parentElement !== player) player.appendChild(box);
-  return box;
+  clearTimeout(hoverTimer);
+  hoveredKey = null;
 }
 
-function hideHighlight() {
-  const box = document.querySelector(".lc-word-highlight");
-  if (box) box.style.display = "none";
+// Displays the translation bubble above the hovered word
+function showTooltip(text, wordRect, playerRect) {
+  const tooltip = getOverlay("lc-tooltip");
+  tooltip.textContent = text;
+  tooltip.style.display = "block";
+  tooltip.style.left = `${wordRect.left - playerRect.left + wordRect.width / 2}px`;
+  tooltip.style.top = `${wordRect.top - playerRect.top - 10}px`;
 }
 
-document.addEventListener("mousemove", (event) => {
-  const segment = event.target.closest(".ytp-caption-segment");
-  if (!segment) {
-    hideHighlight();
+function requestTranslation(key, word, sentence, wordRect, playerRect) {
+  if (translationCache.has(key)) {
+    showTooltip(translationCache.get(key), wordRect, playerRect);
     return;
   }
 
-  const result = getWordAtPoint(event.clientX, event.clientY);
+  showTooltip("…", wordRect, playerRect);
+  chrome.runtime.sendMessage({ type: "TRANSLATE_WORD", payload: { word: word, sentence: sentence } }, (response) => {
+    const failed = chrome.runtime.lastError || !response || !response.ok;
+    const translation = !failed && response.data && response.data.translation;
+    if (translation) translationCache.set(key, translation);
+    // The mouse may have moved to another word in the meantime
+    if (hoveredKey === key) showTooltip(translation || "Traduction indisponible", wordRect, playerRect);
+  });
+}
+
+// Highlights the word under the mouse and translates it after a short pause
+document.addEventListener("mousemove", (event) => {
+  const segment = event.target.closest(".ytp-caption-segment");
+  const result = segment ? getWordAtPoint(event.clientX, event.clientY) : null;
   if (!result) {
-    hideHighlight();
+    hideHover();
     return;
   }
 
   const wordRect = result.range.getBoundingClientRect();
   const playerRect = getPlayer().getBoundingClientRect();
-  const box = getHighlightBox();
-  box.style.display = "block";
-  box.style.left = `${wordRect.left - playerRect.left - 2}px`;
-  box.style.top = `${wordRect.top - playerRect.top}px`;
-  box.style.width = `${wordRect.width + 4}px`;
-  box.style.height = `${wordRect.height}px`;
+  const highlight = getOverlay("lc-word-highlight");
+  highlight.style.display = "block";
+  highlight.style.left = `${wordRect.left - playerRect.left - 2}px`;
+  highlight.style.top = `${wordRect.top - playerRect.top}px`;
+  highlight.style.width = `${wordRect.width + 4}px`;
+  highlight.style.height = `${wordRect.height}px`;
+
+  const sentence = getCaptionSentence(segment);
+  const key = `${result.word}|${sentence}`;
+  if (key === hoveredKey) return;
+
+  hoveredKey = key;
+  clearTimeout(hoverTimer);
+  const tooltip = document.querySelector(".lc-tooltip");
+  if (tooltip) tooltip.style.display = "none";
+  hoverTimer = setTimeout(
+    () => requestTranslation(key, result.word, sentence, wordRect, playerRect),
+    HOVER_DELAY_MS
+  );
 });
 
-// Sends the clicked word to the API
+// Saves the clicked word for the flashcards
 document.addEventListener(
   "click",
   (event) => {
@@ -112,17 +155,16 @@ document.addEventListener(
     const result = getWordAtPoint(event.clientX, event.clientY);
     if (!result) return;
     const word = result.word;
+    const sentence = getCaptionSentence(segment);
 
     const video = document.querySelector("video");
     const payload = {
       word: word,
-      sentence: getCaptionSentence(segment),
+      sentence: sentence,
       video_id: new URLSearchParams(location.search).get("v"),
       timestamp_sec: video ? Math.round(video.currentTime * 10) / 10 : null,
       captured_at: new Date().toISOString(),
     };
-
-    console.log("[LinguaCopilot]", payload);
 
     chrome.runtime.sendMessage({ type: "SAVE_WORD", payload: payload }, (response) => {
       if (chrome.runtime.lastError || !response || !response.ok) {
@@ -130,10 +172,9 @@ document.addEventListener(
         showToast(`« ${word} » non enregistré`, "Erreur d'envoi, voir la console", true);
         return;
       }
-
-      // The translation will be returned by the Lambda once DeepL is added
       const translation = response.data && response.data.translation;
-      showToast(`« ${word} » enregistré`, translation || null);
+      if (translation) translationCache.set(`${word}|${sentence}`, translation);
+      showToast(`« ${word} » enregistré`, null);
     });
   },
   true
@@ -156,7 +197,7 @@ document.addEventListener("mouseout", (event) => {
   if (!captionWindow) return;
   // Ignore moves between words inside the same subtitle block
   if (event.relatedTarget && captionWindow.contains(event.relatedTarget)) return;
-  hideHighlight();
+  hideHover();
   const video = document.querySelector("video");
   if (video && pausedByHover) {
     video.play();
