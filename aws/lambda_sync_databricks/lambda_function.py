@@ -1,89 +1,44 @@
-import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
-import uuid
-from datetime import datetime, timezone
 
 import boto3
 
 s3 = boto3.client("s3")
-BUCKET = os.environ["BUCKET_NAME"]
-DEEPL_API_KEY = os.environ["DEEPL_API_KEY"]
-DEEPL_URL = "https://api-free.deepl.com/v2/translate"
-SOURCE_LANG = os.environ.get("SOURCE_LANG", "DE")
-TARGET_LANG = os.environ.get("TARGET_LANG", "FR")
-REQUIRED_FIELDS = ["word", "sentence", "video_id"]
+DATABRICKS_HOST = os.environ["DATABRICKS_HOST"].rstrip("/")
+DATABRICKS_TOKEN = os.environ["DATABRICKS_TOKEN"]
+VOLUME_PATH = os.environ.get("VOLUME_PATH", "/Volumes/workspace/linguacopilot/raw_events")
 
 
-def translate(word, sentence):
-    """Translates the word (using the sentence as context) and the sentence.
-    Returns (None, None) if DeepL fails, so the click is still saved."""
-    body = json.dumps(
-        {
-            "text": [word, sentence],
-            "source_lang": SOURCE_LANG,
-            "target_lang": TARGET_LANG,
-            "context": sentence,
-        }
-    ).encode("utf-8")
+def upload_to_volume(key, content):
+    """Uploads a file to the Databricks volume, keeping the same folder structure as S3."""
+    target_path = urllib.parse.quote(f"{VOLUME_PATH}/{key}", safe="/=")
+    url = f"{DATABRICKS_HOST}/api/2.0/fs/files{target_path}?overwrite=true"
     request = urllib.request.Request(
-        DEEPL_URL,
-        data=body,
-        method="POST",
+        url,
+        data=content,
+        method="PUT",
         headers={
-            "Authorization": f"DeepL-Auth-Key {DEEPL_API_KEY}",
-            "Content-Type": "application/json",
+            "Authorization": f"Bearer {DATABRICKS_TOKEN}",
+            "Content-Type": "application/octet-stream",
         },
     )
     try:
-        with urllib.request.urlopen(request, timeout=5) as response:
-            translations = json.loads(response.read())["translations"]
-        return translations[0]["text"], translations[1]["text"]
-    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, ValueError) as error:
-        print(f"DeepL translation failed: {error}")
-        return None, None
+        with urllib.request.urlopen(request, timeout=15) as response:
+            return response.status
+    except urllib.error.HTTPError as error:
+        print(f"Databricks upload failed (HTTP {error.code}): {error.read().decode()}")
+        raise
 
 
 def lambda_handler(event, context):
-    # From API Gateway the payload is in "body", from a console test it is the event itself
-    body = event.get("body")
-    payload = json.loads(body) if body else event
+    # S3 sends one record per new file
+    for record in event["Records"]:
+        bucket = record["s3"]["bucket"]["name"]
+        key = urllib.parse.unquote_plus(record["s3"]["object"]["key"])
+        content = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+        status = upload_to_volume(key, content)
+        print(f"Uploaded {key} to Databricks volume (HTTP {status})")
 
-    missing = [field for field in REQUIRED_FIELDS if not payload.get(field)]
-    if missing:
-        return {"statusCode": 400, "body": json.dumps({"error": f"Missing fields: {missing}"})}
-
-    word_translation, sentence_translation = translate(payload["word"], payload["sentence"])
-
-    now = datetime.now(timezone.utc)
-    event_id = str(uuid.uuid4())
-    record = {
-        **payload,
-        "word_translation": word_translation,
-        "sentence_translation": sentence_translation,
-        "source_lang": SOURCE_LANG,
-        "target_lang": TARGET_LANG,
-        "event_id": event_id,
-        "ingested_at": now.isoformat(),
-    }
-
-    key = f"events/date={now:%Y-%m-%d}/{event_id}.json"
-    s3.put_object(
-        Bucket=BUCKET,
-        Key=key,
-        Body=json.dumps(record, ensure_ascii=False).encode("utf-8"),
-        ContentType="application/json",
-    )
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps(
-            {
-                "event_id": event_id,
-                "translation": word_translation,
-                "sentence_translation": sentence_translation,
-            },
-            ensure_ascii=False,
-        ),
-    }
+    return {"uploaded": len(event["Records"])}

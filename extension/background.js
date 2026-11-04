@@ -1,4 +1,4 @@
-const API_URL = "https://xvbjlaakxc.execute-api.eu-north-1.amazonaws.com/events";
+importScripts("config.js");
 
 // Receives words from content.js and sends them to the API
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -6,7 +6,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": API_KEY,
+    },
     body: JSON.stringify(message.payload),
   })
     .then(async (response) => {

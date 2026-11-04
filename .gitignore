@@ -54,3 +54,4 @@ Thumbs.db
 
 # Ollama models (can be large)
 models/
+extension/config.js

@@ -1,3 +1,4 @@
+import hmac
 import json
 import os
 import urllib.error
@@ -10,10 +11,20 @@ import boto3
 s3 = boto3.client("s3")
 BUCKET = os.environ["BUCKET_NAME"]
 DEEPL_API_KEY = os.environ["DEEPL_API_KEY"]
+API_KEY = os.environ["API_KEY"]
 DEEPL_URL = "https://api-free.deepl.com/v2/translate"
 SOURCE_LANG = os.environ.get("SOURCE_LANG", "DE")
 TARGET_LANG = os.environ.get("TARGET_LANG", "FR")
 REQUIRED_FIELDS = ["word", "sentence", "video_id"]
+
+
+def is_authorized(event):
+    """Requests coming through API Gateway must carry the right key.
+    Direct invocations (console tests) already require AWS permissions."""
+    if "requestContext" not in event:
+        return True
+    provided_key = (event.get("headers") or {}).get("x-api-key", "")
+    return hmac.compare_digest(provided_key, API_KEY)
 
 
 def translate(word, sentence):
@@ -46,6 +57,9 @@ def translate(word, sentence):
 
 
 def lambda_handler(event, context):
+    if not is_authorized(event):
+        return {"statusCode": 401, "body": json.dumps({"error": "Unauthorized"})}
+
     # From API Gateway the payload is in "body", from a console test it is the event itself
     body = event.get("body")
     payload = json.loads(body) if body else event
