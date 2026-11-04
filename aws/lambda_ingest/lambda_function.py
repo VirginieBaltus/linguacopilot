@@ -1,0 +1,89 @@
+import json
+import os
+import urllib.error
+import urllib.request
+import uuid
+from datetime import datetime, timezone
+
+import boto3
+
+s3 = boto3.client("s3")
+BUCKET = os.environ["BUCKET_NAME"]
+DEEPL_API_KEY = os.environ["DEEPL_API_KEY"]
+DEEPL_URL = "https://api-free.deepl.com/v2/translate"
+SOURCE_LANG = os.environ.get("SOURCE_LANG", "DE")
+TARGET_LANG = os.environ.get("TARGET_LANG", "FR")
+REQUIRED_FIELDS = ["word", "sentence", "video_id"]
+
+
+def translate(word, sentence):
+    """Translates the word (using the sentence as context) and the sentence.
+    Returns (None, None) if DeepL fails, so the click is still saved."""
+    body = json.dumps(
+        {
+            "text": [word, sentence],
+            "source_lang": SOURCE_LANG,
+            "target_lang": TARGET_LANG,
+            "context": sentence,
+        }
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        DEEPL_URL,
+        data=body,
+        method="POST",
+        headers={
+            "Authorization": f"DeepL-Auth-Key {DEEPL_API_KEY}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            translations = json.loads(response.read())["translations"]
+        return translations[0]["text"], translations[1]["text"]
+    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, ValueError) as error:
+        print(f"DeepL translation failed: {error}")
+        return None, None
+
+
+def lambda_handler(event, context):
+    # From API Gateway the payload is in "body", from a console test it is the event itself
+    body = event.get("body")
+    payload = json.loads(body) if body else event
+
+    missing = [field for field in REQUIRED_FIELDS if not payload.get(field)]
+    if missing:
+        return {"statusCode": 400, "body": json.dumps({"error": f"Missing fields: {missing}"})}
+
+    word_translation, sentence_translation = translate(payload["word"], payload["sentence"])
+
+    now = datetime.now(timezone.utc)
+    event_id = str(uuid.uuid4())
+    record = {
+        **payload,
+        "word_translation": word_translation,
+        "sentence_translation": sentence_translation,
+        "source_lang": SOURCE_LANG,
+        "target_lang": TARGET_LANG,
+        "event_id": event_id,
+        "ingested_at": now.isoformat(),
+    }
+
+    key = f"events/date={now:%Y-%m-%d}/{event_id}.json"
+    s3.put_object(
+        Bucket=BUCKET,
+        Key=key,
+        Body=json.dumps(record, ensure_ascii=False).encode("utf-8"),
+        ContentType="application/json",
+    )
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps(
+            {
+                "event_id": event_id,
+                "translation": word_translation,
+                "sentence_translation": sentence_translation,
+            },
+            ensure_ascii=False,
+        ),
+    }

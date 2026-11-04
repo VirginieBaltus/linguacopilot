@@ -2,3 +2,44 @@
   cursor: pointer !important;
   user-select: text !important;
 }
+
+.lc-word-highlight {
+  display: none;
+  position: absolute;
+  z-index: 9998;
+  border-radius: 3px;
+  border-bottom: 2px solid #ffd54f;
+  background: rgba(255, 213, 79, 0.3);
+  pointer-events: none;
+}
+
+.lc-toast {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  max-width: 80%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: rgba(20, 20, 20, 0.9);
+  color: #ffffff;
+  font-family: Roboto, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.lc-toast--error {
+  background: rgba(160, 30, 30, 0.95);
+}
+
+.lc-toast__title {
+  font-weight: 600;
+}
+
+.lc-toast__detail {
+  margin-top: 4px;
+  font-size: 14px;
+  opacity: 0.85;
+}
